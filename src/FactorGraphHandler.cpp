@@ -27,15 +27,15 @@ FactorGraphHandler::FactorGraphHandler()
 
 }
 
-void FactorGraphHandler::getPoses(std::vector<RigidBodyTransform>& poses)
-{
-   poses.clear();
-   for (int i = 1; i < this->getPoseId(); i++)
-   {
-      RigidBodyTransform mapToSensorTransform(this->getResults().at<gtsam::Pose3>(gtsam::Symbol('x', i)).matrix());
-      poses.emplace_back(mapToSensorTransform);
-   }
-}
+//void FactorGraphHandler::getPoses(std::vector<RigidBodyTransform>& poses)
+//{
+//   poses.clear();
+//   for (int i = 1; i < this->getPoseId(); i++)
+//   {
+//      RigidBodyTransform mapToSensorTransform(this->getResults().at<gtsam::Pose3>(gtsam::Symbol('x', i)).matrix());
+//      poses.emplace_back(mapToSensorTransform);
+//   }
+//}
 
 void FactorGraphHandler::createOdometryNoiseModel(gtsam::Vector6 odomVariance)
 {
