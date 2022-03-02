@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/quantum/Workspace/Volume/catkin_ws/src/FactorGraphROS/cmake-build-debug/devel/setup.sh

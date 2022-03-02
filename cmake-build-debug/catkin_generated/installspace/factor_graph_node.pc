@@ -1,0 +1,8 @@
+prefix=/usr/local
+
+Name: factor_graph_node
+Description: Description of factor_graph_node
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: roscpp rospy std_msgs map_sense
