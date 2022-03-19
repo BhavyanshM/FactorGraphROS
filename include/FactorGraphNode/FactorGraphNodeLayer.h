@@ -7,6 +7,7 @@
 
 
 #include "ApplicationLayer.h"
+#include "SLAM.h"
 
 namespace Clay {
     class FactorGraphNodeLayer : public ApplicationLayer {
@@ -17,8 +18,8 @@ namespace Clay {
         void ImGuiUpdate(ApplicationState& appState) override;
 
     private:
-
          Ref<PointCloud> firstCloud;
+         SLAM _slam;
 
     };
 

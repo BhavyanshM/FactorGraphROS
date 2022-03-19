@@ -200,16 +200,8 @@ namespace Clay
       ImGui::Begin("MapSense Panel");
       if (ImGui::BeginTabBar("Configuration"))
       {
-         if (ImGui::BeginTabItem("Application"))
-         {
-            ImGui::EndTabItem();
-         }
 
-         if (ImGui::BeginTabBar("Modules"))
-         {
-            ImGuiUpdate(appState);
-            ImGui::EndTabBar();
-         }
+         ImGuiUpdate(appState);
 
          ImGui::EndTabBar();
       }

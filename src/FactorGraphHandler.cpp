@@ -47,32 +47,32 @@ void FactorGraphHandler::createOrientedPlaneNoiseModel(gtsam::Vector3 lmVariance
    orientedPlaneNoise = gtsam::noiseModel::Diagonal::Variances(lmVariances);
 }
 
-int FactorGraphHandler::addPriorPoseFactor(gtsam::Pose3 mean)
+int FactorGraphHandler::AddPriorPoseFactor(gtsam::Pose3 mean)
 {
-   LOG("addPriorPoseFactor(x%d)\n", poseId);
+   LOG("AddPriorPoseFactor(x%d)\n", poseId);
    graph.add(gtsam::PriorFactor<gtsam::Pose3>(gtsam::Symbol('x', poseId), mean, priorNoise));
    return poseId;
 }
 
-int FactorGraphHandler::addOdometryFactor(gtsam::Pose3 odometry)
+int FactorGraphHandler::AddOdometryFactor(gtsam::Pose3 odometry)
 {
-   LOG("addOdometryFactor(x%d -o- x%d)\n", poseId, poseId + 1);
+   LOG("AddOdometryFactor(x%d -o- x%d)\n", poseId, poseId + 1);
    graph.add(gtsam::BetweenFactor<gtsam::Pose3>(gtsam::Symbol('x', poseId), gtsam::Symbol('x', poseId + 1), odometry, odometryNoise));
    poseId++;
    return poseId;
 }
 
-int FactorGraphHandler::addOrientedPlaneLandmarkFactor(gtsam::Vector4 lmMean, int lmId, int poseIndex)
+int FactorGraphHandler::AddOrientedPlaneFactor(gtsam::Vector4 lmMean, int lmId, int poseIndex)
 {
    int landmarkId = (lmId != -1) ? lmId : newLandmarkId++;
-   LOG("addOrientedPlaneLandmarkFactor(x%d -o- l%d)\n", poseIndex, landmarkId);
+   LOG("AddOrientedPlaneFactor(x%d -o- l%d)\n", poseIndex, landmarkId);
    graph.add(gtsam::OrientedPlane3Factor(lmMean, orientedPlaneNoise, gtsam::Symbol('x', poseIndex), gtsam::Symbol('l', landmarkId)));
    return landmarkId;
 }
 
-void FactorGraphHandler::setPoseInitialValue(int index, gtsam::Pose3 value)
+void FactorGraphHandler::SetPoseInitialValue(int index, gtsam::Pose3 value)
 {
-   LOG("setPoseInitialValue(x%d)\n", index);
+   LOG("SetPoseInitialValue(x%d)\n", index);
    if (structure.find('x' + std::to_string(index)) == structure.end())
    {
       structure.insert('x' + std::to_string(index));
@@ -80,13 +80,13 @@ void FactorGraphHandler::setPoseInitialValue(int index, gtsam::Pose3 value)
    }
 }
 
-void FactorGraphHandler::setOrientedPlaneInitialValue(int index, gtsam::OrientedPlane3 value)
+void FactorGraphHandler::SetOrientedPlaneInitialValue(int landmarkId, gtsam::OrientedPlane3 value)
 {
-   LOG("setOrientedPlaneInitialValue(l%d)\n", index);
-   if (!initial.exists(gtsam::Symbol('l', index)) && structure.find('l' + std::to_string(index)) == structure.end())
+   LOG("SetOrientedPlaneInitialValue(l%d)\n", landmarkId);
+   if (!initial.exists(gtsam::Symbol('l', landmarkId)) && structure.find('l' + std::to_string(landmarkId)) == structure.end())
    {
-      structure.insert('l' + std::to_string(index));
-      initial.insert(gtsam::Symbol('l', index), value);
+      structure.insert('l' + std::to_string(landmarkId));
+      initial.insert(gtsam::Symbol('l', landmarkId), value);
    }
 }
 
@@ -140,3 +140,50 @@ void FactorGraphHandler::incrementPoseId()
    poseId++;
 }
 
+
+void FactorGraphHandler::SLAMTest()
+{
+   using namespace gtsam;
+
+   int currentPoseId = 1;
+
+   Pose3 init_pose(Rot3::Ypr(0.0, 0.0, 0.0), Point3(0.0, 0.0, 0.0));
+   currentPoseId = AddPriorPoseFactor(Pose3::identity());
+   SetPoseInitialValue(currentPoseId, Pose3::identity());
+
+   AddOrientedPlaneFactor(Vector4(1, 0, 0, -3), 0, currentPoseId);
+   SetOrientedPlaneInitialValue(0, gtsam::OrientedPlane3(Vector4(0.8, 0.1, 0.1, -2.9)));
+
+   AddOrientedPlaneFactor(Vector4(0, 0, 1, -3), 1, currentPoseId);
+   SetOrientedPlaneInitialValue(1, gtsam::OrientedPlane3(Vector4(0.1, 0.04, 1.1, -2.8)));
+
+   Pose3 odometry(Rot3::Ypr(0.0, 0.0, 0.0), Point3(1.0, 0.0, 0.0));
+   currentPoseId = AddOdometryFactor(odometry);
+   SetPoseInitialValue(currentPoseId, odometry);
+
+   AddOrientedPlaneFactor(Vector4(1, 0, 0, -2), 0, currentPoseId);
+   SetOrientedPlaneInitialValue(0, gtsam::OrientedPlane3(Vector4(0.8, 0.1, 0.1, -2.1)));
+
+   AddOrientedPlaneFactor(Vector4(0, 0, 1, -3), 1, currentPoseId);
+   SetOrientedPlaneInitialValue(1, gtsam::OrientedPlane3(Vector4(0.1, 0.04, 1.1, -2.2)));
+
+   optimize();
+
+   result.print("Result Planes");
+
+
+//
+//   AddPriorPoseFactor(Eigen::MatrixXd());
+//
+//   currentPoseId = AddOdometryFactor(Eigen::MatrixXd());
+//   SetPoseInitialValue(currentPoseId, Eigen::MatrixXd());
+//
+//   /* Initialize poses and landmarks with map frame values. */
+//   SetOrientedPlaneInitialValue(currentPoseId, gtsam::OrientedPlane3());
+//
+//   optimize();
+//
+//   clearISAM2();
+
+      /* Load previous and current regions. Separated by SKIP_REGIONS. */
+}

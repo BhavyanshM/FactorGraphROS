@@ -54,11 +54,11 @@ class FactorGraphHandler
 
 //      void getPoses(std::vector<RigidBodyTransform>& poses);
 
-      int addPriorPoseFactor(gtsam::Pose3 mean);
+      int AddPriorPoseFactor(gtsam::Pose3 mean);
 
-      int addOdometryFactor(gtsam::Pose3 odometry);
+      int AddOdometryFactor(gtsam::Pose3 odometry);
 
-      int addOrientedPlaneLandmarkFactor(gtsam::Vector4 lmMean, int lmId, int poseIndex);
+      int AddOrientedPlaneFactor(gtsam::Vector4 lmMean, int lmId, int poseIndex);
 
       void optimize();
 
@@ -66,9 +66,9 @@ class FactorGraphHandler
 
       void clearISAM2();
 
-      void setPoseInitialValue(int index, gtsam::Pose3 value);
+      void SetPoseInitialValue(int index, gtsam::Pose3 value);
 
-      void setOrientedPlaneInitialValue(int index, gtsam::OrientedPlane3 value);
+      void SetOrientedPlaneInitialValue(int landmarkId, gtsam::OrientedPlane3 value);
 
       gtsam::Values getResults();
 
@@ -81,6 +81,8 @@ class FactorGraphHandler
       void createOrientedPlaneNoiseModel(gtsam::Vector3 lmVariances);
 
       void incrementPoseId();
+
+      void SLAMTest();
 };
 
 #endif //FACTORGRAPHSLAM_H

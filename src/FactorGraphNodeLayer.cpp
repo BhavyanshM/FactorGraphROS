@@ -19,14 +19,20 @@ namespace Clay
 
    void FactorGraphNodeLayer::MapsenseUpdate()
    {
-      //      ROS_DEBUG("TickEvent: %d", count++);
-      if (appState.ROS_ENABLED)
-      {
-      }
+
    }
 
    void FactorGraphNodeLayer::ImGuiUpdate(ApplicationState& appState)
    {
+      if(ImGui::BeginTabItem("Factor Graph"))
+      {
+         if (ImGui::Button("Update"))
+         {
+            _slam.LoadPlanarSLAM("/home/quantum/Workspace/Volume/catkin_ws/src/MapSenseROS/Extras/");
+         }
+         ImGui::EndTabItem();
+      }
+
    }
 }
 

@@ -14,11 +14,16 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 find_package(GTSAM REQUIRED)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
+add_subdirectory(Vendor/Geometry/)
+
 include_directories(${EIGEN3_INCLUDE_DIR})
 include_directories(${GTSAM_INCLUDE_DIR})
 
+message(STATUS "Geometry:${Geometry_INCLUDE_DIR}")
+
 include_directories(      # include
         ${catkin_INCLUDE_DIRS}
+        ${Geometry_INCLUDE_DIR}
 )
 
 ## Find catkin macros and libraries
@@ -74,7 +79,7 @@ set(FG_SOURCES
         include/ApplicationState.h
         include/FactorGraphNode/FactorGraphHandler.h
         include/FactorGraphNode/FactorGraphNodeLayer.h
-)
+        src/SLAM.cpp include/SLAM.h)
 
 add_library(implot STATIC Vendor/implot/implot.h Vendor/implot/implot_internal.h Vendor/implot/implot.cpp Vendor/implot/implot_items.cpp Vendor/implot/implot_demo.cpp)
 target_include_directories(implot PUBLIC Vendor/implot/
@@ -85,10 +90,11 @@ set(FACTOR_GRAPH_NODE 1)
 if (FACTOR_GRAPH_NODE)
     add_executable(FactorGraphNode ${FG_SOURCES})
     target_link_libraries(FactorGraphNode
-            ${catkin_LIBRARIES} gtsam
+            ${catkin_LIBRARIES} gtsam geom-tools
             ClayEngine glad imgui implot glfw3 ${CMAKE_DL_LIBS} ${BLAS_LIBRARIES})
     add_dependencies(FactorGraphNode map_sense_generate_messages_cpp)
     target_include_directories(FactorGraphNode PUBLIC
+            ${Geometry_INCLUDE_DIR}
             ${catkin_INCLUDE_DIRS}
             ${CLAY_INCLUDE_DIRS}
             /usr/local/include/ClayEngine/Vendor/
