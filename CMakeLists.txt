@@ -73,7 +73,9 @@ set(FG_SOURCES
         src/FactorGraphHandler.cpp
         src/FactorGraphNodeLayer.cpp
         src/MeshGenerator.cpp
+        src/NetworkManager.cpp
 
+        include/NetworkManager.h
         include/MeshGenerator.h
         include/ApplicationLayer.h
         include/ApplicationState.h

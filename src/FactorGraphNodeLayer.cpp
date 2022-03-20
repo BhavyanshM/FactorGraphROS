@@ -10,7 +10,8 @@ namespace Clay
 {
    FactorGraphNodeLayer::FactorGraphNodeLayer(int argc, char **argv) : ApplicationLayer(argc, argv)
    {
-
+      _network = new NetworkManager(appState);
+      _network->InitNode(argc, argv, appState);
 
       firstCloud = std::make_shared<PointCloud>(glm::vec4(0.7f, 0.4f, 0.5f, 1.0f), _rootModel);
       _models.emplace_back(std::dynamic_pointer_cast<Model>(firstCloud));
@@ -19,6 +20,11 @@ namespace Clay
 
    void FactorGraphNodeLayer::MapsenseUpdate()
    {
+      if(appState.ROS_ENABLED)
+      {
+         _network->SpinNode();
+         _network->AcceptMapsenseConfiguration(appState);
+      }
 
    }
 
