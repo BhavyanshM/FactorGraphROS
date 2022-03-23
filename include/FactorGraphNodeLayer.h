@@ -20,8 +20,8 @@ namespace Clay {
 
     private:
          NetworkManager* _network;
-         Ref<PointCloud> firstCloud;
-         SLAM _slam;
+          SLAM _slam;
+          Ref<PointCloud> firstCloud;
 
     };
 

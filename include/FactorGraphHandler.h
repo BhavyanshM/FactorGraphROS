@@ -29,36 +29,18 @@ using namespace boost::assign;
 
 class FactorGraphHandler
 {
-   private:
-
-      gtsam::ISAM2Params parameters;
-      gtsam::ISAM2 isam;
-
-      std::unordered_set<std::string> structure;
-      gtsam::Values initial, result;
-      gtsam::NonlinearFactorGraph graph;
-      gtsam::noiseModel::Diagonal::shared_ptr priorNoise;
-      gtsam::noiseModel::Diagonal::shared_ptr priorNoise2;
-      gtsam::noiseModel::Diagonal::shared_ptr odometryNoise;
-      gtsam::noiseModel::Diagonal::shared_ptr orientedPlaneNoise;
-      int poseId = 1;
    public:
       int getPoseId() const;
 
-   private:
-      int newLandmarkId = 1;
-
-   public:
-
       FactorGraphHandler();
 
-//      void getPoses(std::vector<RigidBodyTransform>& poses);
+      //      void getPoses(std::vector<RigidBodyTransform>& poses);
 
-      int AddPriorPoseFactor(gtsam::Pose3 mean);
+      void AddPriorPoseFactor(gtsam::Pose3 mean);
 
-      int AddOdometryFactor(gtsam::Pose3 odometry);
+      void AddOdometryFactor(gtsam::Pose3 odometry, int poseId);
 
-      int AddOrientedPlaneFactor(gtsam::Vector4 lmMean, int lmId, int poseIndex);
+      void AddOrientedPlaneFactor(gtsam::Vector4 lmMean, int lmId, int poseIndex);
 
       void optimize();
 
@@ -70,11 +52,11 @@ class FactorGraphHandler
 
       void SetOrientedPlaneInitialValue(int landmarkId, gtsam::OrientedPlane3 value);
 
-      gtsam::Values getResults();
+      const gtsam::Values& GetResults() const {return result;};
 
-      gtsam::Values getInitial();
+      const gtsam::Values& GetInitialValues() const {return initial;};
 
-      gtsam::NonlinearFactorGraph getFactorGraph();
+      const gtsam::NonlinearFactorGraph& GetFactorGraph();
 
       void createOdometryNoiseModel(gtsam::Vector6 odomVariance);
 
@@ -83,6 +65,19 @@ class FactorGraphHandler
       void incrementPoseId();
 
       void SLAMTest();
+
+   private:
+      gtsam::ISAM2Params parameters;
+
+      gtsam::ISAM2 isam;
+      std::unordered_set<std::string> structure;
+      gtsam::Values initial, result;
+      gtsam::NonlinearFactorGraph graph;
+      gtsam::noiseModel::Diagonal::shared_ptr priorNoise;
+      gtsam::noiseModel::Diagonal::shared_ptr priorNoise2;
+      gtsam::noiseModel::Diagonal::shared_ptr odometryNoise;
+      gtsam::noiseModel::Diagonal::shared_ptr orientedPlaneNoise;
+
 };
 
 #endif //FACTORGRAPHSLAM_H

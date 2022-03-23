@@ -4,7 +4,7 @@
 
 #include "Core/Application.h"
 #include "Core/Clay.h"
-#include "FactorGraphNode/FactorGraphNodeLayer.h"
+#include "FactorGraphNodeLayer.h"
 
 class FactorGraphNodeApp : public Clay::Application
 {

@@ -66,21 +66,16 @@ include_directories(
 )
 
 set(FG_SOURCES
-        src/FactorGraphNodeApp.cpp
+
 
         src/ApplicationState.cpp
-        src/ApplicationLayer.cpp
         src/FactorGraphHandler.cpp
-        src/FactorGraphNodeLayer.cpp
-        src/MeshGenerator.cpp
         src/NetworkManager.cpp
 
         include/NetworkManager.h
-        include/MeshGenerator.h
-        include/ApplicationLayer.h
         include/ApplicationState.h
-        include/FactorGraphNode/FactorGraphHandler.h
-        include/FactorGraphNode/FactorGraphNodeLayer.h
+        include/FactorGraphHandler.h
+
         src/SLAM.cpp include/SLAM.h)
 
 add_library(implot STATIC Vendor/implot/implot.h Vendor/implot/implot_internal.h Vendor/implot/implot.cpp Vendor/implot/implot_items.cpp Vendor/implot/implot_demo.cpp)
@@ -88,9 +83,16 @@ target_include_directories(implot PUBLIC Vendor/implot/
         "/usr/local/include/ClayEngine/Vendor/ImGui"
         "/usr/local/include/ClayEngine/Vendor/ImGui/imgui")
 
-set(FACTOR_GRAPH_NODE 1)
+set(FACTOR_GRAPH_NODE 0)
 if (FACTOR_GRAPH_NODE)
-    add_executable(FactorGraphNode ${FG_SOURCES})
+    add_executable(FactorGraphNode ${FG_SOURCES}
+            src/FactorGraphNodeApp.cpp
+            src/MeshGenerator.cpp
+            include/MeshGenerator.h
+            src/ApplicationLayer.cpp
+            include/ApplicationLayer.h
+            src/FactorGraphNodeLayer.cpp
+            include/FactorGraphNodeLayer.h)
     target_link_libraries(FactorGraphNode
             ${catkin_LIBRARIES} gtsam geom-tools
             ClayEngine glad imgui implot glfw3 ${CMAKE_DL_LIBS} ${BLAS_LIBRARIES})
@@ -101,9 +103,22 @@ if (FACTOR_GRAPH_NODE)
             ${CLAY_INCLUDE_DIRS}
             /usr/local/include/ClayEngine/Vendor/
             Vendor/implot/
-            include/FactorGraphNode
             include
             )
     target_compile_definitions(FactorGraphNode PUBLIC -DASSETS_PATH="/usr/local/include/ClayEngine/Assets/")
+endif ()
+
+set(FACTOR_GRAPH_NODE_HEADLESS 1)
+if (FACTOR_GRAPH_NODE_HEADLESS)
+    add_executable(FactorGraphNodeHeadless ${FG_SOURCES}  src/FactorGraphNodeHeadless.cpp include/FactorGraphNodeHeadless.h)
+    target_link_libraries(FactorGraphNodeHeadless
+            ${catkin_LIBRARIES} gtsam geom-tools ${CMAKE_DL_LIBS} ${BLAS_LIBRARIES})
+    add_dependencies(FactorGraphNodeHeadless map_sense_generate_messages_cpp)
+    target_include_directories(FactorGraphNodeHeadless PUBLIC
+            ${Geometry_INCLUDE_DIR}
+            ${catkin_INCLUDE_DIRS}
+            include
+            )
+    target_compile_definitions(FactorGraphNodeHeadless PUBLIC -DASSETS_PATH="/usr/local/include/ClayEngine/Assets/")
 endif ()
 

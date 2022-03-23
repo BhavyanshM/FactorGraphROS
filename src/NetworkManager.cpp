@@ -31,21 +31,37 @@ void NetworkManager::InitNode(int argc, char **argv, ApplicationState& app)
 
 void NetworkManager::InputPlaneCallback(const sensor_msgs::PointCloud2ConstPtr& planes)
 {
-   inputPlaneMsg = planes;
+//   inputPlaneMsg = planes;
 
-   int totalFloats = inputPlaneMsg->width * inputPlaneMsg->height * inputPlaneMsg->point_step / sizeof(float);
+   printf("Width:%d, Height:%d, Step:%d\n", planes->width, planes->height, planes->point_step);
 
-   std::vector<float> points(totalFloats);
+   int totalBytes = planes->width * planes->height * planes->point_step;
+//   int totalBytes = 140;
+   std::vector<float> points(totalBytes / sizeof(float));
+   memcpy(points.data(), planes->data.data(), totalBytes);
 
+//   CLAY_LOG_INFO("InputPlaneCallback: {}", totalBytes);
 
-   memcpy(points.data(), inputPlaneMsg->data.data(), totalFloats * sizeof(float));
-
-   CLAY_LOG_INFO("Points: {} {} {} {} {} {} {} {}", points[0], points[1], points[2], points[3], points[4], points[5], points[6], points[7]);
+   PlaneSet3D planeSet;
+   planeSet.SetID((int)planes->header.seq + 1);
+   for(int i = 0; i<planes->width * planes->height; i++)
+   {
+      planeSet.GetPlanes().emplace_back(points[i*7 ] , points[i*7 + 1], points[i*7 + 2], points[i*7 + 3],
+                                points[i*7 + 4], points[i*7 + 5], (int) points[i*7 + 6]);
+//      CLAY_LOG_INFO("Plane: {}", planeSet.GetPlanes()[planeSet.GetPlanes().size() - 1].GetString());
+   }
+   _planeSets.push_back(planeSet);
+   _planesAvailable = true;
 }
 
 void NetworkManager::InputPoseCallback(const geometry_msgs::PoseStamped pose)
 {
    inputPoseMsg = pose;
+   RigidBodyTransform transform;
+   transform.SetQuaternionAndTranslation(Eigen::Quaterniond(pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z),
+                                         Eigen::Vector3d(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z));
+   transform.SetID((int)pose.header.seq + 1);
+   _poses.emplace_back(transform);
    paramsAvailable = true;
    CLAY_LOG_INFO("Pose: {} {} {} {} {} {} {}", pose.pose.position.x, pose.pose.position.y, pose.pose.position.z,
                  pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w);
@@ -85,8 +101,8 @@ std::vector<TopicInfo> NetworkManager::getROSTopicList()
 
 void NetworkManager::publishSLAMPose(RigidBodyTransform worldToSensorTransform)
 {
-   Eigen::Quaterniond quaternion = worldToSensorTransform.getQuaternion();
-   Eigen::Vector3d position = worldToSensorTransform.getTranslation();
+   Eigen::Quaterniond quaternion = worldToSensorTransform.GetQuaternion();
+   Eigen::Vector3d position = worldToSensorTransform.GetTranslation();
 
    geometry_msgs::PoseStamped pose;
    pose.pose.position = geometry_msgs::Point();

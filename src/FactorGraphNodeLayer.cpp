@@ -2,7 +2,7 @@
 // Created by isr-lab on 1/10/22.
 //
 
-#include "FactorGraphNode/FactorGraphNodeLayer.h"
+#include "FactorGraphNodeLayer.h"
 #include "Scene/Mesh/MeshTools.h"
 #include "MeshGenerator.h"
 

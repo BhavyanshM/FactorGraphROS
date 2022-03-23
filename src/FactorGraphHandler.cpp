@@ -47,27 +47,23 @@ void FactorGraphHandler::createOrientedPlaneNoiseModel(gtsam::Vector3 lmVariance
    orientedPlaneNoise = gtsam::noiseModel::Diagonal::Variances(lmVariances);
 }
 
-int FactorGraphHandler::AddPriorPoseFactor(gtsam::Pose3 mean)
+void FactorGraphHandler::AddPriorPoseFactor(gtsam::Pose3 mean)
 {
-   LOG("AddPriorPoseFactor(x%d)\n", poseId);
-   graph.add(gtsam::PriorFactor<gtsam::Pose3>(gtsam::Symbol('x', poseId), mean, priorNoise));
-   return poseId;
+   LOG("AddPriorPoseFactor(x%d)\n", 0);
+   graph.add(gtsam::PriorFactor<gtsam::Pose3>(gtsam::Symbol('x', 0), mean, priorNoise));
 }
 
-int FactorGraphHandler::AddOdometryFactor(gtsam::Pose3 odometry)
+void FactorGraphHandler::AddOdometryFactor(gtsam::Pose3 odometry, int poseId)
 {
-   LOG("AddOdometryFactor(x%d -o- x%d)\n", poseId, poseId + 1);
-   graph.add(gtsam::BetweenFactor<gtsam::Pose3>(gtsam::Symbol('x', poseId), gtsam::Symbol('x', poseId + 1), odometry, odometryNoise));
+   LOG("AddOdometryFactor(x%d -o- x%d)\n", poseId - 1, poseId);
+   graph.add(gtsam::BetweenFactor<gtsam::Pose3>(gtsam::Symbol('x', poseId - 1), gtsam::Symbol('x', poseId), odometry, odometryNoise));
    poseId++;
-   return poseId;
 }
 
-int FactorGraphHandler::AddOrientedPlaneFactor(gtsam::Vector4 lmMean, int lmId, int poseIndex)
+void FactorGraphHandler::AddOrientedPlaneFactor(gtsam::Vector4 lmMean, int lmId, int poseIndex)
 {
-   int landmarkId = (lmId != -1) ? lmId : newLandmarkId++;
-   LOG("AddOrientedPlaneFactor(x%d -o- l%d)\n", poseIndex, landmarkId);
-   graph.add(gtsam::OrientedPlane3Factor(lmMean, orientedPlaneNoise, gtsam::Symbol('x', poseIndex), gtsam::Symbol('l', landmarkId)));
-   return landmarkId;
+   LOG("AddOrientedPlaneFactor(x%d -o- l%d)\n", poseIndex, lmId);
+   graph.add(gtsam::OrientedPlane3Factor(lmMean, orientedPlaneNoise, gtsam::Symbol('x', poseIndex), gtsam::Symbol('l', lmId)));
 }
 
 void FactorGraphHandler::SetPoseInitialValue(int index, gtsam::Pose3 value)
@@ -115,29 +111,9 @@ void FactorGraphHandler::clearISAM2()
    graph.resize(0);
 }
 
-gtsam::Values FactorGraphHandler::getResults()
-{
-   return result;
-}
-
-gtsam::Values FactorGraphHandler::getInitial()
-{
-   return initial;
-}
-
-gtsam::NonlinearFactorGraph FactorGraphHandler::getFactorGraph()
+const gtsam::NonlinearFactorGraph& FactorGraphHandler::GetFactorGraph()
 {
    return graph;
-}
-
-int FactorGraphHandler::getPoseId() const
-{
-   return poseId;
-}
-
-void FactorGraphHandler::incrementPoseId()
-{
-   poseId++;
 }
 
 
@@ -148,7 +124,7 @@ void FactorGraphHandler::SLAMTest()
    int currentPoseId = 1;
 
    Pose3 init_pose(Rot3::Ypr(0.0, 0.0, 0.0), Point3(0.0, 0.0, 0.0));
-   currentPoseId = AddPriorPoseFactor(Pose3::identity());
+   AddPriorPoseFactor(Pose3::identity());
    SetPoseInitialValue(currentPoseId, Pose3::identity());
 
    AddOrientedPlaneFactor(Vector4(1, 0, 0, -3), 0, currentPoseId);
@@ -158,7 +134,7 @@ void FactorGraphHandler::SLAMTest()
    SetOrientedPlaneInitialValue(1, gtsam::OrientedPlane3(Vector4(0.1, 0.04, 1.1, -2.8)));
 
    Pose3 odometry(Rot3::Ypr(0.0, 0.0, 0.0), Point3(1.0, 0.0, 0.0));
-   currentPoseId = AddOdometryFactor(odometry);
+   AddOdometryFactor(odometry, 1);
    SetPoseInitialValue(currentPoseId, odometry);
 
    AddOrientedPlaneFactor(Vector4(1, 0, 0, -2), 0, currentPoseId);

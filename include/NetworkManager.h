@@ -15,30 +15,14 @@
 
 #include <ApplicationState.h>
 #include "RigidBodyTransform.h"
+#include "Plane3D.h"
+#include "deque"
 
 typedef ros::master::TopicInfo TopicInfo;
 
 class NetworkManager
 {
-   private:
-      TopicInfo currentDataTopic, currentInfoTopic;
-
    public:
-      map_sense::MapsenseConfiguration paramsMessage;
-      geometry_msgs::PoseStamped inputPoseMsg;
-      sensor_msgs::PointCloud2ConstPtr inputPlaneMsg;
-
-      ros::NodeHandle *rosNode;
-
-      ros::Subscriber subMapSenseParams;
-      ros::Subscriber rawPoseSub;
-      ros::Subscriber rawPlaneSub;
-
-      ros::Publisher planarRegionPub;
-      ros::Publisher slamPosePub;
-
-      bool paramsAvailable = false;
-
       NetworkManager(ApplicationState& app);
 
       std::vector<TopicInfo> getROSTopicList();
@@ -56,6 +40,40 @@ class NetworkManager
       void publishSLAMPose(RigidBodyTransform pose);
 
       void AcceptMapsenseConfiguration(ApplicationState& appState);
+
+      std::deque<PlaneSet3D>& GetPlaneSets() {return _planeSets;}
+
+      std::deque<RigidBodyTransform>& GetPoses() {return _poses;}
+
+      bool GetPlanesAvailable() const { return _planesAvailable; }
+
+      bool GetPoseAvailable() const { return _poseAvailable; }
+
+      void SetPlanesAvailable(bool available) { _planesAvailable = available; }
+
+   private:
+      map_sense::MapsenseConfiguration paramsMessage;
+      geometry_msgs::PoseStamped inputPoseMsg;
+
+      sensor_msgs::PointCloud2ConstPtr inputPlaneMsg;
+
+      ros::NodeHandle *rosNode;
+      ros::Subscriber subMapSenseParams;
+      ros::Subscriber rawPoseSub;
+
+      ros::Subscriber rawPlaneSub;
+      ros::Publisher planarRegionPub;
+
+      ros::Publisher slamPosePub;
+
+      TopicInfo currentDataTopic, currentInfoTopic;
+
+      bool paramsAvailable = false;
+      bool _planesAvailable = false;
+      bool _poseAvailable = false;
+
+      std::deque<PlaneSet3D> _planeSets;
+      std::deque<RigidBodyTransform> _poses;
 
 };
 
