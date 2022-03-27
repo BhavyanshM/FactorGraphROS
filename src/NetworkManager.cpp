@@ -20,7 +20,8 @@ void NetworkManager::InitNode(int argc, char **argv, ApplicationState& app)
 
    // ROSTopic Publishers
    planarRegionPub = rosNode->advertise<map_sense::RawGPUPlanarRegionList>("/mapsense/planar_regions", 3);
-//   slamPosePub = rosNode->advertise<geometry_msgs::PoseStamped>("/mapsense/slam/pose", 3);
+   resultPlanePub = rosNode->advertise<sensor_msgs::PointCloud2>("/slam/output/planes", 3);
+   slamPosePub = rosNode->advertise<geometry_msgs::PoseStamped>("/slam/output/pose", 3);
 
    subMapSenseParams = rosNode->subscribe("/map/config", 8, &NetworkManager::MapsenseParamsCallback, this);
    rawPoseSub = rosNode->subscribe("/mapsense/slam/pose", 8, &NetworkManager::InputPoseCallback, this);
@@ -31,24 +32,16 @@ void NetworkManager::InitNode(int argc, char **argv, ApplicationState& app)
 
 void NetworkManager::InputPlaneCallback(const sensor_msgs::PointCloud2ConstPtr& planes)
 {
-//   inputPlaneMsg = planes;
-
-   printf("Width:%d, Height:%d, Step:%d\n", planes->width, planes->height, planes->point_step);
-
    int totalBytes = planes->width * planes->height * planes->point_step;
-//   int totalBytes = 140;
    std::vector<float> points(totalBytes / sizeof(float));
    memcpy(points.data(), planes->data.data(), totalBytes);
-
-//   CLAY_LOG_INFO("InputPlaneCallback: {}", totalBytes);
 
    PlaneSet3D planeSet;
    planeSet.SetID((int)planes->header.seq + 1);
    for(int i = 0; i<planes->width * planes->height; i++)
    {
-      planeSet.GetPlanes().emplace_back(points[i*7 ] , points[i*7 + 1], points[i*7 + 2], points[i*7 + 3],
-                                points[i*7 + 4], points[i*7 + 5], (int) points[i*7 + 6]);
-//      CLAY_LOG_INFO("Plane: {}", planeSet.GetPlanes()[planeSet.GetPlanes().size() - 1].GetString());
+      planeSet.InsertPlane(Plane3D(points[i*7 ] , points[i*7 + 1], points[i*7 + 2], points[i*7 + 3],
+                                points[i*7 + 4], points[i*7 + 5], (int) points[i*7 + 6]), (int) points[i*7 + 6]);
    }
    _planeSets.push_back(planeSet);
    _planesAvailable = true;
@@ -61,10 +54,8 @@ void NetworkManager::InputPoseCallback(const geometry_msgs::PoseStamped pose)
    transform.SetQuaternionAndTranslation(Eigen::Quaterniond(pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z),
                                          Eigen::Vector3d(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z));
    transform.SetID((int)pose.header.seq + 1);
-   _poses.emplace_back(transform);
+   _poses.push_back(std::move(transform));
    paramsAvailable = true;
-   CLAY_LOG_INFO("Pose: {} {} {} {} {} {} {}", pose.pose.position.x, pose.pose.position.y, pose.pose.position.z,
-                 pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w);
 }
 
 void NetworkManager::MapsenseParamsCallback(const map_sense::MapsenseConfiguration msg)
@@ -99,7 +90,7 @@ std::vector<TopicInfo> NetworkManager::getROSTopicList()
    return names;
 }
 
-void NetworkManager::publishSLAMPose(RigidBodyTransform worldToSensorTransform)
+void NetworkManager::PublishPose(RigidBodyTransform worldToSensorTransform)
 {
    Eigen::Quaterniond quaternion = worldToSensorTransform.GetQuaternion();
    Eigen::Vector3d position = worldToSensorTransform.GetTranslation();
@@ -117,5 +108,37 @@ void NetworkManager::publishSLAMPose(RigidBodyTransform worldToSensorTransform)
    pose.pose.orientation.w = quaternion.w();
 
    this->slamPosePub.publish(pose);
+}
+
+void NetworkManager::PublishPlaneSet(const PlaneSet3D& set) const
+{
+   sensor_msgs::PointCloud2 planeSet;
+   planeSet.header.seq = set.GetID();
+   planeSet.width = set.GetPlanes().size();
+   planeSet.height = 1;
+   planeSet.row_step = 2;
+   planeSet.point_step = 4 * 5;
+
+   std::vector<float> points;
+
+   for (auto plane : set.GetPlanes())
+   {
+      //      points.push_back((float)poseId);
+      points.push_back(plane.second.GetParams().x());
+      points.push_back(plane.second.GetParams().y());
+      points.push_back(plane.second.GetParams().z());
+      points.push_back(plane.second.GetParams().w());
+      points.push_back((float)plane.second.GetID());
+      CLAY_LOG_INFO("Publishing Plane ID: {}", plane.second.GetID());
+   }
+
+   std::vector<unsigned char> data(points.size() * sizeof(float));
+   memcpy(data.data(), points.data(), data.size());
+
+   planeSet.data = data;
+
+   CLAY_LOG_INFO("Data: {} Points:{}", data.size(), points.size());
+
+   resultPlanePub.publish(planeSet);
 }
 

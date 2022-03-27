@@ -27,16 +27,6 @@ FactorGraphHandler::FactorGraphHandler()
 
 }
 
-//void FactorGraphHandler::getPoses(std::vector<RigidBodyTransform>& poses)
-//{
-//   poses.clear();
-//   for (int i = 1; i < this->getPoseId(); i++)
-//   {
-//      RigidBodyTransform mapToSensorTransform(this->getResults().at<gtsam::Pose3>(gtsam::Symbol('x', i)).matrix());
-//      poses.emplace_back(mapToSensorTransform);
-//   }
-//}
-
 void FactorGraphHandler::createOdometryNoiseModel(gtsam::Vector6 odomVariance)
 {
    odometryNoise = gtsam::noiseModel::Diagonal::Variances(odomVariance);
@@ -47,10 +37,10 @@ void FactorGraphHandler::createOrientedPlaneNoiseModel(gtsam::Vector3 lmVariance
    orientedPlaneNoise = gtsam::noiseModel::Diagonal::Variances(lmVariances);
 }
 
-void FactorGraphHandler::AddPriorPoseFactor(gtsam::Pose3 mean)
+void FactorGraphHandler::AddPriorPoseFactor(int index, gtsam::Pose3 mean)
 {
-   LOG("AddPriorPoseFactor(x%d)\n", 0);
-   graph.add(gtsam::PriorFactor<gtsam::Pose3>(gtsam::Symbol('x', 0), mean, priorNoise));
+   LOG("AddPriorPoseFactor(x%d)\n", index);
+   graph.add(gtsam::PriorFactor<gtsam::Pose3>(gtsam::Symbol('x', index), mean, priorNoise));
 }
 
 void FactorGraphHandler::AddOdometryFactor(gtsam::Pose3 odometry, int poseId)
@@ -92,9 +82,9 @@ void FactorGraphHandler::optimize()
    result = gtsam::LevenbergMarquardtOptimizer(graph, initial).optimize();
 }
 
-void FactorGraphHandler::optimizeISAM2(uint8_t numberOfUpdates)
+void FactorGraphHandler::OptimizeISAM2(uint8_t numberOfUpdates)
 {
-   LOG("optimizeISAM2()\n");
+   LOG("OptimizeISAM2()\n");
    isam.update(graph, initial);
    for (uint8_t i = 1; i < numberOfUpdates; i++)
    {
@@ -104,9 +94,9 @@ void FactorGraphHandler::optimizeISAM2(uint8_t numberOfUpdates)
    LOG("optimization complete()\n");
 }
 
-void FactorGraphHandler::clearISAM2()
+void FactorGraphHandler::ClearISAM2()
 {
-   LOG("clearISAM2()\n");
+   LOG("ClearISAM2()\n");
    initial.clear();
    graph.resize(0);
 }
@@ -124,7 +114,7 @@ void FactorGraphHandler::SLAMTest()
    int currentPoseId = 1;
 
    Pose3 init_pose(Rot3::Ypr(0.0, 0.0, 0.0), Point3(0.0, 0.0, 0.0));
-   AddPriorPoseFactor(Pose3::identity());
+   AddPriorPoseFactor(currentPoseId, Pose3::identity());
    SetPoseInitialValue(currentPoseId, Pose3::identity());
 
    AddOrientedPlaneFactor(Vector4(1, 0, 0, -3), 0, currentPoseId);
@@ -159,7 +149,7 @@ void FactorGraphHandler::SLAMTest()
 //
 //   optimize();
 //
-//   clearISAM2();
+//   ClearISAM2();
 
       /* Load previous and current regions. Separated by SKIP_REGIONS. */
 }

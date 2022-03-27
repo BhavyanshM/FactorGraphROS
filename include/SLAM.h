@@ -15,7 +15,7 @@ class SLAM
       SLAM ();
       void LoadPlanarSLAM(const std::string& filepath);
 
-      void LandmarkUpdate(const std::vector<Plane3D>& planes, int poseId);
+      void LandmarkUpdate(const std::unordered_map<int, Plane3D>& planes, int poseId);
 
       void PoseUpdate(const RigidBodyTransform& odometry, int poseId);
 
@@ -23,12 +23,23 @@ class SLAM
 
       void SLAMTest();
 
+      void GetResultPlanes(PlaneSet3D& resultSet);
+
+      void GetResultPose(RigidBodyTransform& transform, int poseId);
+
+      void GetResultPoses(std::vector<RigidBodyTransform>& poses);
+
+
    private:
       FactorGraphHandler _fgh;
 
       RigidBodyTransform _sensorPoseMapFrame;
 
-      int _currentPoseId = 0;
+      std::vector<uint64_t> _landmarkKeys, _poseKeys;
+
+      PlaneSet3D _planarMap;
+
+      int _currentPoseId = 1;
 };
 
 #endif //FACTOR_GRAPH_NODE_SLAM_H

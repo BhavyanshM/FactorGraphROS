@@ -37,7 +37,7 @@ class NetworkManager
 
       void SpinNode();
 
-      void publishSLAMPose(RigidBodyTransform pose);
+      void PublishPose(RigidBodyTransform worldToSensorTransform);
 
       void AcceptMapsenseConfiguration(ApplicationState& appState);
 
@@ -51,6 +51,8 @@ class NetworkManager
 
       void SetPlanesAvailable(bool available) { _planesAvailable = available; }
 
+      void PublishPlaneSet(const PlaneSet3D& set) const;
+
    private:
       map_sense::MapsenseConfiguration paramsMessage;
       geometry_msgs::PoseStamped inputPoseMsg;
@@ -63,6 +65,7 @@ class NetworkManager
 
       ros::Subscriber rawPlaneSub;
       ros::Publisher planarRegionPub;
+      ros::Publisher resultPlanePub;
 
       ros::Publisher slamPosePub;
 

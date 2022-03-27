@@ -36,7 +36,7 @@ class FactorGraphHandler
 
       //      void getPoses(std::vector<RigidBodyTransform>& poses);
 
-      void AddPriorPoseFactor(gtsam::Pose3 mean);
+      void AddPriorPoseFactor(int index, gtsam::Pose3 mean);
 
       void AddOdometryFactor(gtsam::Pose3 odometry, int poseId);
 
@@ -44,9 +44,9 @@ class FactorGraphHandler
 
       void optimize();
 
-      void optimizeISAM2(uint8_t numberOfUpdates);
+      void OptimizeISAM2(uint8_t numberOfUpdates);
 
-      void clearISAM2();
+      void ClearISAM2();
 
       void SetPoseInitialValue(int index, gtsam::Pose3 value);
 
