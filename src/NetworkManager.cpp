@@ -21,7 +21,7 @@ void NetworkManager::InitNode(int argc, char **argv, ApplicationState& app)
    // ROSTopic Publishers
    planarRegionPub = rosNode->advertise<map_sense::RawGPUPlanarRegionList>("/mapsense/planar_regions", 3);
    resultPlanePub = rosNode->advertise<sensor_msgs::PointCloud2>("/slam/output/planes", 3);
-   slamPosePub = rosNode->advertise<geometry_msgs::PoseStamped>("/slam/output/pose", 3);
+   slamPosePub = rosNode->advertise<sensor_msgs::PointCloud2>("/slam/output/pose", 3);
 
    subMapSenseParams = rosNode->subscribe("/map/config", 8, &NetworkManager::MapsenseParamsCallback, this);
    rawPoseSub = rosNode->subscribe("/mapsense/slam/pose", 8, &NetworkManager::InputPoseCallback, this);
@@ -95,19 +95,32 @@ void NetworkManager::PublishPose(RigidBodyTransform worldToSensorTransform)
    Eigen::Quaterniond quaternion = worldToSensorTransform.GetQuaternion();
    Eigen::Vector3d position = worldToSensorTransform.GetTranslation();
 
-   geometry_msgs::PoseStamped pose;
-   pose.pose.position = geometry_msgs::Point();
-   pose.pose.position.x = position.x();
-   pose.pose.position.y = position.y();
-   pose.pose.position.z = position.z();
+   sensor_msgs::PointCloud2 poseSet;
+   poseSet.width = 1;
+   poseSet.height = 1;
+   poseSet.row_step = 1;
+   poseSet.point_step = 4 * 8;
 
-   pose.pose.orientation = geometry_msgs::Quaternion();
-   pose.pose.orientation.x = quaternion.x();
-   pose.pose.orientation.y = quaternion.y();
-   pose.pose.orientation.z = quaternion.z();
-   pose.pose.orientation.w = quaternion.w();
+   std::vector<float> points;
 
-   this->slamPosePub.publish(pose);
+   points.push_back(position.x());
+   points.push_back(position.y());
+   points.push_back(position.z());
+   points.push_back(quaternion.x());
+   points.push_back(quaternion.y());
+   points.push_back(quaternion.z());
+   points.push_back(quaternion.w());
+   points.push_back(worldToSensorTransform.GetID());
+   CLAY_LOG_INFO("Publishing Pose ID: {}", worldToSensorTransform.GetID());
+
+   std::vector<unsigned char> data(points.size() * sizeof(float));
+   memcpy(data.data(), points.data(), data.size());
+
+   poseSet.data = data;
+
+   CLAY_LOG_INFO("Data: {} Points:{}", data.size(), points.size());
+
+   slamPosePub.publish(poseSet);
 }
 
 void NetworkManager::PublishPlaneSet(const PlaneSet3D& set) const
