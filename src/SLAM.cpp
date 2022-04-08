@@ -44,7 +44,7 @@ void SLAM::LandmarkUpdate(const std::unordered_map<int, Plane3D>& planes, int po
    for(auto plane : planes)
    {
       _fgh.AddOrientedPlaneFactor(plane.second.GetParams(), plane.second.GetID(), poseId);
-      Plane3D planeInMapFrame = plane.second.GetTransformed(_sensorToMapTransform.GetInverse());
+      Plane3D planeInMapFrame = plane.second.GetTransformed(_sensorToMapTransform);
       CLAY_LOG_INFO("Plane Inserted: {}", planeInMapFrame.GetString());
       _fgh.SetOrientedPlaneInitialValue(plane.second.GetID(), gtsam::OrientedPlane3(planeInMapFrame.GetParams()));
       _planarMap.InsertPlane(planeInMapFrame, plane.second.GetID());
