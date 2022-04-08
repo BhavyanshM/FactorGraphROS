@@ -9,6 +9,7 @@ void NetworkManager::SpinNode()
 {
    ROS_DEBUG("SpinOnce");
    ros::spinOnce();
+//   ros::Duration(0.2).sleep();
 }
 
 void NetworkManager::InitNode(int argc, char **argv, ApplicationState& app)
@@ -37,25 +38,36 @@ void NetworkManager::InputPlaneCallback(const sensor_msgs::PointCloud2ConstPtr& 
    memcpy(points.data(), planes->data.data(), totalBytes);
 
    PlaneSet3D planeSet;
-   planeSet.SetID((int)planes->header.seq + 1);
+   planeSet.SetID((int)points[0]);
    for(int i = 0; i<planes->width * planes->height; i++)
    {
-      planeSet.InsertPlane(Plane3D(points[i*7 ] , points[i*7 + 1], points[i*7 + 2], points[i*7 + 3],
-                                points[i*7 + 4], points[i*7 + 5], (int) points[i*7 + 6]), (int) points[i*7 + 6]);
+      planeSet.InsertPlane(Plane3D(points[i*8 + 1], points[i*8 + 2], points[i*8 + 3],
+                                points[i*8 + 4], points[i*8 + 5], points[i*8 + 6], (int) points[i*8+7]), (int) points[i*8 + 7]);
+      CLAY_LOG_INFO("Received Plane({}): {} {} {} {} {} {}", (int) points[i*8 + 7], points[i*8 + 1], points[i*8 + 2], points[i*8 + 3],
+                    points[i*8 + 4], points[i*8 + 5], points[i*8 + 6]);
    }
-   _planeSets.push_back(planeSet);
+   _planeSets.push_back(std::move(planeSet));
    _planesAvailable = true;
 }
 
-void NetworkManager::InputPoseCallback(const geometry_msgs::PoseStamped pose)
+void NetworkManager::InputPoseCallback(const sensor_msgs::PointCloud2ConstPtr& poses)
 {
-   inputPoseMsg = pose;
-   RigidBodyTransform transform;
-   transform.SetQuaternionAndTranslation(Eigen::Quaterniond(pose.pose.orientation.w, pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z),
-                                         Eigen::Vector3d(pose.pose.position.x, pose.pose.position.y, pose.pose.position.z));
-   transform.SetID((int)pose.header.seq + 1);
-   _poses.push_back(std::move(transform));
-   paramsAvailable = true;
+
+   int totalBytes = poses->width * poses->height * poses->point_step;
+   std::vector<float> points(totalBytes / sizeof(float));
+   memcpy(points.data(), poses->data.data(), totalBytes);
+
+   for(int i = 0; i<poses->width * poses->height; i++)
+   {
+      RigidBodyTransform transform;
+      transform.SetQuaternionAndTranslation(Eigen::Quaterniond(points[i*8+6], points[i*8 + 3],points[i*8 + 4], points[i*8 + 5]),
+                                            Eigen::Vector3d(points[i*8 ] , points[i*8 + 1], points[i*8 + 2]));
+      transform.SetID((int) points[i*8+7]);
+      CLAY_LOG_INFO("Received Pose ({}): {} {} {} {} {} {} {}", points[i*8+7],
+                    points[i*8 ] , points[i*8 + 1], points[i*8 + 2], points[i*8 + 3],points[i*8 + 4], points[i*8 + 5],points[i*8 + 6]);
+      _poses.push_back(std::move(transform));
+      paramsAvailable = true;
+   }
 }
 
 void NetworkManager::MapsenseParamsCallback(const map_sense::MapsenseConfiguration msg)

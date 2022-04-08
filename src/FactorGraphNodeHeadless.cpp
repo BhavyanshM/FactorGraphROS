@@ -39,17 +39,21 @@ void FactorGraphNodeHeadless::Update()
          RigidBodyTransform transform;
          _slam.GetResultPose(transform, _network->GetPlaneSets()[0].GetID());
 
+         Eigen::Quaterniond quaternion = transform.GetQuaternion();
+         Eigen::Vector3d position = transform.GetTranslation();
+         CLAY_LOG_INFO("Result Pose ({}): {} {} {} {} {} {} {}", _network->GetPlaneSets()[0].GetID(), position.x(),
+                       position.y(), position.z(), quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
+
          _network->GetPlaneSets().pop_front();
          _network->PublishPlaneSet(resultSet);
          _network->PublishPose(transform);
-
       }
 
       if(_network->GetPoses().size() > 0)
       {
          CLAY_LOG_INFO("PoseUpdate: PoseID: {} TotalPoses: {}", _network->GetPoses()[0].GetID(), _network->GetPoses().size());
 
-         _slam.PoseUpdate(_network->GetPoses()[0], _network->GetPoses()[0].GetID() + 1);
+         _slam.PoseUpdate(_network->GetPoses()[0], _network->GetPoses()[0].GetID());
          _network->GetPoses().pop_front();
 
 //         for(int i = 0; i<_network->GetPoses().size(); i++)

@@ -33,13 +33,13 @@ class SLAM
    private:
       FactorGraphHandler _fgh;
 
-      RigidBodyTransform _sensorPoseMapFrame;
+      RigidBodyTransform _sensorToMapTransform;
 
       std::vector<uint64_t> _landmarkKeys, _poseKeys;
 
       PlaneSet3D _planarMap;
 
-      int _currentPoseId = 1;
+      int _currentPoseId = 0;
 };
 
 #endif //FACTOR_GRAPH_NODE_SLAM_H

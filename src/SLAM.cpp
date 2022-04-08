@@ -3,6 +3,7 @@
 //
 
 #include "SLAM.h"
+#include "Core/Log.h"
 
 SLAM::SLAM()
 {
@@ -20,9 +21,20 @@ void SLAM::PoseUpdate(const RigidBodyTransform& odometry, int poseId)
    using namespace gtsam;
 
    /*TODO: Create Global Initial Value and Create Local Measurement Factor. */
-   _sensorPoseMapFrame.MultiplyRight(RigidBodyTransform(odometry.GetMatrix()));
+   _sensorToMapTransform.MultiplyRight(odometry);
+
+   Eigen::Quaterniond quaternion = _sensorToMapTransform.GetQuaternion();
+   Eigen::Vector3d position = _sensorToMapTransform.GetTranslation();
+   CLAY_LOG_INFO("Sensor To Map Pose ({}): {} {} {} {} {} {} {}", poseId, position.x(),
+                 position.y(), position.z(), quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
+
+   quaternion = odometry.GetQuaternion();
+   position = odometry.GetTranslation();
+   CLAY_LOG_INFO("Odometry ({}): {} {} {} {} {} {} {}", poseId, position.x(),
+                 position.y(), position.z(), quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
+
    _fgh.AddOdometryFactor(gtsam::Pose3(odometry.GetMatrix()), poseId);
-   _fgh.SetPoseInitialValue(poseId, gtsam::Pose3(odometry.GetMatrix()));
+   _fgh.SetPoseInitialValue(poseId, gtsam::Pose3(_sensorToMapTransform.GetInverse().GetMatrix()));
 }
 
 void SLAM::LandmarkUpdate(const std::unordered_map<int, Plane3D>& planes, int poseId)
@@ -32,14 +44,15 @@ void SLAM::LandmarkUpdate(const std::unordered_map<int, Plane3D>& planes, int po
    for(auto plane : planes)
    {
       _fgh.AddOrientedPlaneFactor(plane.second.GetParams(), plane.second.GetID(), poseId);
-      Plane3D planeInWorldFrame = plane.second.GetTransformed(_sensorPoseMapFrame);
-      _fgh.SetOrientedPlaneInitialValue(plane.second.GetID(), gtsam::OrientedPlane3(planeInWorldFrame.GetParams()));
-      _planarMap.InsertPlane(planeInWorldFrame, plane.second.GetID());
+      Plane3D planeInMapFrame = plane.second.GetTransformed(_sensorToMapTransform.GetInverse());
+      CLAY_LOG_INFO("Plane Inserted: {}", planeInMapFrame.GetString());
+      _fgh.SetOrientedPlaneInitialValue(plane.second.GetID(), gtsam::OrientedPlane3(planeInMapFrame.GetParams()));
+      _planarMap.InsertPlane(planeInMapFrame, plane.second.GetID());
    }
 
    _fgh.OptimizeISAM2(1);
    _fgh.ClearISAM2();
-   _fgh.GetResults().print("Result Planes");
+//   _fgh.GetResults().print("Result Planes");
 }
 
 void SLAM::GetResultPlanes(PlaneSet3D& resultSet)

@@ -29,7 +29,7 @@ class NetworkManager
 
       void InputPlaneCallback(const sensor_msgs::PointCloud2ConstPtr& planes);
 
-      void InputPoseCallback(const geometry_msgs::PoseStamped pose);
+      void InputPoseCallback(const sensor_msgs::PointCloud2ConstPtr& poses);
 
       void MapsenseParamsCallback(const map_sense::MapsenseConfiguration msg);
 
