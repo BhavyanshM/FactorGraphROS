@@ -3,7 +3,7 @@
 //
 
 #include "FactorGraphNodeHeadless.h"
-#include "Core/Log.h"
+#include "Log.h"
 
 FactorGraphNodeHeadless::FactorGraphNodeHeadless(int argc, char **argv)
 {
@@ -27,42 +27,39 @@ void FactorGraphNodeHeadless::Update()
       _network->AcceptMapsenseConfiguration(appState);
 
 
+      if(_network->GetPoses().size() > 0)
+      {
+         MS_INFO("PoseUpdate: PoseID: {} TotalPoses: {}", _network->GetPoses()[0].GetID(), _network->GetPoses().size());
+
+         _slam.PoseUpdate(_network->GetPoses()[0], _network->GetPoses()[0].GetID());
+         _network->GetPoses().pop_front();
+
+         //         for(int i = 0; i<_network->GetPoses().size(); i++)
+         //         {
+         //            printf("%d\t", _network->GetPoses()[i].GetID());
+         //         }
+         //         printf("\n");
+
+      }
+
+
       if(_network->GetPlaneSets().size() > 0)
       {
-         CLAY_LOG_INFO("LandmarkUpdate: PlaneID: {}, Total PlanSets: {}", _network->GetPlaneSets()[0].GetID(), _network->GetPlaneSets().size());
+         MS_INFO("LandmarkUpdate: PlaneID: {}, Total PlanSets: {}", _network->GetPlaneSets()[0].GetID(), _network->GetPlaneSets().size());
 
          _slam.LandmarkUpdate(_network->GetPlaneSets()[0].GetPlanes(), _network->GetPlaneSets()[0].GetID());
 
          PlaneSet3D resultSet;
          _slam.GetResultPlanes(resultSet);
 
-         RigidBodyTransform transform;
-         _slam.GetResultPose(transform, _network->GetPlaneSets()[0].GetID());
-
-         Eigen::Quaterniond quaternion = transform.GetQuaternion();
-         Eigen::Vector3d position = transform.GetTranslation();
-         CLAY_LOG_INFO("Result Pose ({}): {} {} {} {} {} {} {}", _network->GetPlaneSets()[0].GetID(), position.x(),
-                       position.y(), position.z(), quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
+         std::vector<RigidBodyTransform> transforms;
+         _slam.GetResultPoses(transforms);
 
          _network->GetPlaneSets().pop_front();
          _network->PublishPlaneSet(resultSet);
-         _network->PublishPose(transform);
+         _network->PublishPoses(transforms);
       }
 
-      if(_network->GetPoses().size() > 0)
-      {
-         CLAY_LOG_INFO("PoseUpdate: PoseID: {} TotalPoses: {}", _network->GetPoses()[0].GetID(), _network->GetPoses().size());
-
-         _slam.PoseUpdate(_network->GetPoses()[0], _network->GetPoses()[0].GetID());
-         _network->GetPoses().pop_front();
-
-//         for(int i = 0; i<_network->GetPoses().size(); i++)
-//         {
-//            printf("%d\t", _network->GetPoses()[i].GetID());
-//         }
-//         printf("\n");
-
-      }
    }
 }
 

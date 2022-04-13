@@ -37,7 +37,7 @@ class NetworkManager
 
       void SpinNode();
 
-      void PublishPose(RigidBodyTransform worldToSensorTransform);
+      void PublishPoses(const std::vector<RigidBodyTransform>& transforms);
 
       void AcceptMapsenseConfiguration(ApplicationState& appState);
 

@@ -1,5 +1,5 @@
 #include "NetworkManager.h"
-#include "Core/Log.h"
+#include "Log.h"
 
 NetworkManager::NetworkManager(ApplicationState& app)
 {
@@ -7,14 +7,14 @@ NetworkManager::NetworkManager(ApplicationState& app)
 
 void NetworkManager::SpinNode()
 {
-   ROS_DEBUG("SpinOnce");
+   MS_DEBUG("SpinOnce");
    ros::spinOnce();
-//   ros::Duration(0.2).sleep();
+   ros::Duration(0.1).sleep();
 }
 
 void NetworkManager::InitNode(int argc, char **argv, ApplicationState& app)
 {
-   CLAY_LOG_INFO("Starting ROS Node");
+   MS_INFO("Starting ROS Node");
 
    ros::init(argc, argv, "FactorGraph");
    rosNode = new ros::NodeHandle();
@@ -28,7 +28,7 @@ void NetworkManager::InitNode(int argc, char **argv, ApplicationState& app)
    rawPoseSub = rosNode->subscribe("/mapsense/slam/pose", 8, &NetworkManager::InputPoseCallback, this);
    rawPlaneSub = rosNode->subscribe("/slam/input/planes", 8, &NetworkManager::InputPlaneCallback, this);
 
-   CLAY_LOG_INFO("Started ROS Node");
+   MS_INFO("Started ROS Node");
 }
 
 void NetworkManager::InputPlaneCallback(const sensor_msgs::PointCloud2ConstPtr& planes)
@@ -43,7 +43,7 @@ void NetworkManager::InputPlaneCallback(const sensor_msgs::PointCloud2ConstPtr& 
    {
       planeSet.InsertPlane(Plane3D(points[i*8 + 1], points[i*8 + 2], points[i*8 + 3],
                                 points[i*8 + 4], points[i*8 + 5], points[i*8 + 6], (int) points[i*8+7]), (int) points[i*8 + 7]);
-      CLAY_LOG_INFO("Received Plane({}): {} {} {} {} {} {}", (int) points[i*8 + 7], points[i*8 + 1], points[i*8 + 2], points[i*8 + 3],
+      MS_DEBUG("Received Plane({}): {} {} {} {} {} {}", (int) points[i*8 + 7], points[i*8 + 1], points[i*8 + 2], points[i*8 + 3],
                     points[i*8 + 4], points[i*8 + 5], points[i*8 + 6]);
    }
    _planeSets.push_back(std::move(planeSet));
@@ -63,7 +63,7 @@ void NetworkManager::InputPoseCallback(const sensor_msgs::PointCloud2ConstPtr& p
       transform.SetQuaternionAndTranslation(Eigen::Quaterniond(points[i*8+6], points[i*8 + 3],points[i*8 + 4], points[i*8 + 5]),
                                             Eigen::Vector3d(points[i*8 ] , points[i*8 + 1], points[i*8 + 2]));
       transform.SetID((int) points[i*8+7]);
-      CLAY_LOG_INFO("Received Pose ({}): {} {} {} {} {} {} {}", points[i*8+7],
+      MS_DEBUG("Received Pose ({}): {} {} {} {} {} {} {}", points[i*8+7],
                     points[i*8 ] , points[i*8 + 1], points[i*8 + 2], points[i*8 + 3],points[i*8 + 4], points[i*8 + 5],points[i*8 + 6]);
       _poses.push_back(std::move(transform));
       paramsAvailable = true;
@@ -74,7 +74,7 @@ void NetworkManager::MapsenseParamsCallback(const map_sense::MapsenseConfigurati
 {
    paramsMessage = msg;
    paramsAvailable = true;
-   ROS_DEBUG("PARAMS CALLBACK");
+   MS_DEBUG("PARAMS CALLBACK");
 }
 
 void NetworkManager::AcceptMapsenseConfiguration(ApplicationState& appState)
@@ -102,35 +102,37 @@ std::vector<TopicInfo> NetworkManager::getROSTopicList()
    return names;
 }
 
-void NetworkManager::PublishPose(RigidBodyTransform worldToSensorTransform)
+void NetworkManager::PublishPoses(const std::vector<RigidBodyTransform>& transforms)
 {
-   Eigen::Quaterniond quaternion = worldToSensorTransform.GetQuaternion();
-   Eigen::Vector3d position = worldToSensorTransform.GetTranslation();
-
    sensor_msgs::PointCloud2 poseSet;
-   poseSet.width = 1;
+   poseSet.width = transforms.size();
    poseSet.height = 1;
    poseSet.row_step = 1;
    poseSet.point_step = 4 * 8;
 
    std::vector<float> points;
 
-   points.push_back(position.x());
-   points.push_back(position.y());
-   points.push_back(position.z());
-   points.push_back(quaternion.x());
-   points.push_back(quaternion.y());
-   points.push_back(quaternion.z());
-   points.push_back(quaternion.w());
-   points.push_back(worldToSensorTransform.GetID());
-   CLAY_LOG_INFO("Publishing Pose ID: {}", worldToSensorTransform.GetID());
+   for (auto tf : transforms)
+   {
+      Eigen::Quaterniond quaternion = tf.GetQuaternion();
+      Eigen::Vector3d position = tf.GetTranslation();
+      points.push_back(position.x());
+      points.push_back(position.y());
+      points.push_back(position.z());
+      points.push_back(quaternion.x());
+      points.push_back(quaternion.y());
+      points.push_back(quaternion.z());
+      points.push_back(quaternion.w());
+      points.push_back(tf.GetID());
+      MS_DEBUG("Publishing Pose ID: {}", id);
+   }
 
    std::vector<unsigned char> data(points.size() * sizeof(float));
    memcpy(data.data(), points.data(), data.size());
 
    poseSet.data = data;
 
-   CLAY_LOG_INFO("Data: {} Points:{}", data.size(), points.size());
+   MS_DEBUG("Data: {} Points:{}", data.size(), points.size());
 
    slamPosePub.publish(poseSet);
 }
@@ -154,7 +156,7 @@ void NetworkManager::PublishPlaneSet(const PlaneSet3D& set) const
       points.push_back(plane.second.GetParams().z());
       points.push_back(plane.second.GetParams().w());
       points.push_back((float)plane.second.GetID());
-      CLAY_LOG_INFO("Publishing Plane ID: {}", plane.second.GetID());
+      MS_DEBUG("Publishing Plane ID: {}", plane.second.GetID());
    }
 
    std::vector<unsigned char> data(points.size() * sizeof(float));
@@ -162,7 +164,7 @@ void NetworkManager::PublishPlaneSet(const PlaneSet3D& set) const
 
    planeSet.data = data;
 
-   CLAY_LOG_INFO("Data: {} Points:{}", data.size(), points.size());
+   MS_DEBUG("Data: {} Points:{}", data.size(), points.size());
 
    resultPlanePub.publish(planeSet);
 }

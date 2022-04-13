@@ -3,7 +3,7 @@
 //
 
 #include "SLAM.h"
-#include "Core/Log.h"
+#include "Log.h"
 
 SLAM::SLAM()
 {
@@ -25,16 +25,17 @@ void SLAM::PoseUpdate(const RigidBodyTransform& odometry, int poseId)
 
    Eigen::Quaterniond quaternion = _sensorToMapTransform.GetQuaternion();
    Eigen::Vector3d position = _sensorToMapTransform.GetTranslation();
-   CLAY_LOG_INFO("Sensor To Map Pose ({}): {} {} {} {} {} {} {}", poseId, position.x(),
+   MS_DEBUG("Sensor To Map Pose ({}): {} {} {} {} {} {} {}", poseId, position.x(),
                  position.y(), position.z(), quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
 
    quaternion = odometry.GetQuaternion();
    position = odometry.GetTranslation();
-   CLAY_LOG_INFO("Odometry ({}): {} {} {} {} {} {} {}", poseId, position.x(),
+   MS_DEBUG("Odometry ({}): {} {} {} {} {} {} {}", poseId, position.x(),
                  position.y(), position.z(), quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
 
    _fgh.AddOdometryFactor(gtsam::Pose3(odometry.GetMatrix()), poseId);
    _fgh.SetPoseInitialValue(poseId, gtsam::Pose3(_sensorToMapTransform.GetInverse().GetMatrix()));
+   _poseKeys.push_back(poseId);
 }
 
 void SLAM::LandmarkUpdate(const std::unordered_map<int, Plane3D>& planes, int poseId)
@@ -43,15 +44,21 @@ void SLAM::LandmarkUpdate(const std::unordered_map<int, Plane3D>& planes, int po
 
    for(auto plane : planes)
    {
+      MS_DEBUG("Local Plane: {}", plane.second.GetString());
       _fgh.AddOrientedPlaneFactor(plane.second.GetParams(), plane.second.GetID(), poseId);
       Plane3D planeInMapFrame = plane.second.GetTransformed(_sensorToMapTransform);
-      CLAY_LOG_INFO("Plane Inserted: {}", planeInMapFrame.GetString());
+      MS_DEBUG("Transformed Plane: {}", planeInMapFrame.GetString());
       _fgh.SetOrientedPlaneInitialValue(plane.second.GetID(), gtsam::OrientedPlane3(planeInMapFrame.GetParams()));
       _planarMap.InsertPlane(planeInMapFrame, plane.second.GetID());
+      _landmarkKeys.push_back(plane.second.GetID());
    }
 
-   _fgh.OptimizeISAM2(1);
+//   _fgh.optimize();
+   _fgh.OptimizeISAM2(8);
    _fgh.ClearISAM2();
+
+
+
 //   _fgh.GetResults().print("Result Planes");
 }
 
@@ -73,7 +80,13 @@ void SLAM::GetResultPose(RigidBodyTransform& transform, int poseId)
 
 void SLAM::GetResultPoses(std::vector<RigidBodyTransform>& poses)
 {
-
+   for (int id : _poseKeys)
+   {
+      RigidBodyTransform transform;
+      transform.SetMatrix(_fgh.GetResults().at<gtsam::Pose3>(gtsam::Symbol('x', id)).matrix());
+      transform.SetID(id);
+      poses.push_back(std::move(transform));
+   }
 }
 
 void SLAM::SLAMTest()

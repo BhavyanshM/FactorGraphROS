@@ -75,6 +75,7 @@ set(FG_SOURCES
         include/NetworkManager.h
         include/ApplicationState.h
         include/FactorGraphHandler.h
+        include/Log.h
 
         src/SLAM.cpp include/SLAM.h)
 
@@ -92,7 +93,7 @@ if (FACTOR_GRAPH_NODE)
             src/ApplicationLayer.cpp
             include/ApplicationLayer.h
             src/FactorGraphNodeLayer.cpp
-            include/FactorGraphNodeLayer.h)
+            include/FactorGraphNodeLayer.h include/Log.h)
     target_link_libraries(FactorGraphNode
             ${catkin_LIBRARIES} gtsam geom-tools
             ClayEngine glad imgui implot glfw3 ${CMAKE_DL_LIBS} ${BLAS_LIBRARIES})
@@ -120,5 +121,8 @@ if (FACTOR_GRAPH_NODE_HEADLESS)
             include
             )
     target_compile_definitions(FactorGraphNodeHeadless PUBLIC -DASSETS_PATH="/usr/local/include/ClayEngine/Assets/")
+    if(LOG_DEBUG)
+        target_compile_definitions(FactorGraphNodeHeadless PUBLIC -DLOG_DEBUG=1)
+    endif()
 endif ()
 

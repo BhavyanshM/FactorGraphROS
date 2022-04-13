@@ -29,6 +29,8 @@ class SLAM
 
       void GetResultPoses(std::vector<RigidBodyTransform>& poses);
 
+      const RigidBodyTransform& GetSensorToMapTransform() const {return _sensorToMapTransform;}
+
 
    private:
       FactorGraphHandler _fgh;
