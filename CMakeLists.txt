@@ -79,6 +79,7 @@ set(FG_SOURCES
 
         src/SLAM.cpp include/SLAM.h)
 
+
 add_library(implot STATIC Vendor/implot/implot.h Vendor/implot/implot_internal.h Vendor/implot/implot.cpp Vendor/implot/implot_items.cpp Vendor/implot/implot_demo.cpp)
 target_include_directories(implot PUBLIC Vendor/implot/
         "/usr/local/include/ClayEngine/Vendor/ImGui"
